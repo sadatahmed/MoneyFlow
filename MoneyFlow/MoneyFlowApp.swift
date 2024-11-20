@@ -6,12 +6,21 @@
 //
 
 import SwiftUI
+import CoreData
 
 @main
 struct MoneyFlowApp: App {
+    @StateObject private var dataController = DataController()
+    @AppStorage("isFirstLaunch") private var isFirstLaunch: Bool = true
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if isFirstLaunch {
+                OnboardingView()
+            } else {
+                MainTabView()
+                    .environment(\.managedObjectContext, dataController.container.viewContext)
+            }
         }
     }
 }
