@@ -25,6 +25,7 @@
 		EA2783722CEDFAC000E5EA9A /* BudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2783672CEDFAC000E5EA9A /* BudgetView.swift */; };
 		EA2783732CEDFAC000E5EA9A /* AddAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2783682CEDFAC000E5EA9A /* AddAccountView.swift */; };
 		EA2783752CEDFAF300E5EA9A /* DataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2783742CEDFAF300E5EA9A /* DataController.swift */; };
+		EA2783772CEE589300E5EA9A /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2783762CEE589300E5EA9A /* EmptyStateView.swift */; };
 		EAF85F062CEF0D3A006F5B39 /* AccountDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF85F052CEF0D3A006F5B39 /* AccountDetailView.swift */; };
 		EAF85F082CEF0D58006F5B39 /* EditAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF85F072CEF0D58006F5B39 /* EditAccountView.swift */; };
 /* End PBXBuildFile section */
@@ -49,6 +50,7 @@
 		EA2783672CEDFAC000E5EA9A /* BudgetView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BudgetView.swift; sourceTree = "<group>"; };
 		EA2783682CEDFAC000E5EA9A /* AddAccountView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddAccountView.swift; sourceTree = "<group>"; };
 		EA2783742CEDFAF300E5EA9A /* DataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataController.swift; sourceTree = "<group>"; };
+		EA2783762CEE589300E5EA9A /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		EAF85F052CEF0D3A006F5B39 /* AccountDetailView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AccountDetailView.swift; sourceTree = "<group>"; };
 		EAF85F072CEF0D58006F5B39 /* EditAccountView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditAccountView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -83,6 +85,7 @@
 		EA2783482CEDFA0500E5EA9A /* MoneyFlow */ = {
 			isa = PBXGroup;
 			children = (
+				EA2783782CEE58C200E5EA9A /* Components */,
 				EA27835B2CEDFA4D00E5EA9A /* Models */,
 				EA27835A2CEDFA3F00E5EA9A /* Views */,
 				EA2783572CEDFA2900E5EA9A /* MoneyFlow.xcdatamodeld */,
@@ -129,6 +132,14 @@
 				EA2783742CEDFAF300E5EA9A /* DataController.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		EA2783782CEE58C200E5EA9A /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				EA2783762CEE589300E5EA9A /* EmptyStateView.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -206,6 +217,7 @@
 				EA2783732CEDFAC000E5EA9A /* AddAccountView.swift in Sources */,
 				EA27836D2CEDFAC000E5EA9A /* AddBudgetView.swift in Sources */,
 				EA27836A2CEDFAC000E5EA9A /* DashboardView.swift in Sources */,
+				EA2783772CEE589300E5EA9A /* EmptyStateView.swift in Sources */,
 				EA27836C2CEDFAC000E5EA9A /* MainTabView.swift in Sources */,
 				EA27836E2CEDFAC000E5EA9A /* TransactionsView.swift in Sources */,
 				EA27835D2CEDFA9700E5EA9A /* TransactionRow.swift in Sources */,

@@ -15,32 +15,42 @@ struct BudgetView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    // Total Budget Overview
-                    BudgetOverviewCard(budgets: budgets)
-                        .padding(.horizontal)
-                    
-                    // Budget List
-                    LazyVStack(spacing: 12) {
-                        ForEach(budgets) { budget in
-                            BudgetRow(budget: budget)
-                                .onTapGesture {
-                                    withAnimation(.spring(response: 0.3)) {
-                                        if selectedBudget == budget {
-                                            selectedBudget = nil
-                                        } else {
-                                            selectedBudget = budget
+            Group {
+                if budgets.isEmpty {
+                    EmptyStateView(
+                        title: "No Budgets Yet",
+                        message: "Create your first budget to start tracking your spending limits",
+                        systemImage: "empty_budget"
+                    )
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            // Total Budget Overview
+                            BudgetOverviewCard(budgets: budgets)
+                                .padding(.horizontal)
+                            
+                            // Budget List
+                            LazyVStack(spacing: 12) {
+                                ForEach(budgets) { budget in
+                                    BudgetRow(budget: budget)
+                                        .onTapGesture {
+                                            withAnimation(.spring(response: 0.3)) {
+                                                if selectedBudget == budget {
+                                                    selectedBudget = nil
+                                                } else {
+                                                    selectedBudget = budget
+                                                }
+                                            }
                                         }
-                                    }
                                 }
+                            }
+                            .padding(.horizontal)
                         }
+                        .padding(.vertical)
                     }
-                    .padding(.horizontal)
+                    .background(Color(.systemGroupedBackground).ignoresSafeArea())
                 }
-                .padding(.vertical)
             }
-            .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Budgets")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
