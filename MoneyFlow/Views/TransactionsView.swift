@@ -19,71 +19,81 @@ struct TransactionsView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Filter Pills
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(filterOptions, id: \.self) { filter in
-                            FilterPill(
-                                title: filter.capitalized,
-                                isSelected: selectedFilter == filter,
-                                action: { selectedFilter = filter }
-                            )
+            Group {
+                if transactions.isEmpty {
+                    EmptyStateView(
+                        title: "No Transactions Yet",
+                        message: "Start adding your income and expenses to track your spending",
+                        systemImage: "empty_transaction"
+                    )
+                } else {
+                    VStack(spacing: 0) {
+                        // Filter Pills
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(filterOptions, id: \.self) { filter in
+                                    FilterPill(
+                                        title: filter.capitalized,
+                                        isSelected: selectedFilter == filter,
+                                        action: { selectedFilter = filter }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 16)
                         }
-                    }
-                    .padding(.horizontal, 16)
-                }
-                .padding(.vertical, 8)
-                
-                // Transactions List
-                ScrollView {
-                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        ForEach(groupedTransactions, id: \.date) { group in
-                            Section(header: TransactionDateHeader(date: group.date)) {
-                                VStack(spacing: 0) {
-                                    ForEach(group.transactions) { transaction in
+                        .padding(.vertical, 8)
+                        
+                        // Transactions List
+                        ScrollView {
+                            LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                                ForEach(groupedTransactions, id: \.date) { group in
+                                    Section(header: TransactionDateHeader(date: group.date)) {
                                         VStack(spacing: 0) {
-                                            TransactionRow(transaction: transaction)
-                                                .padding(.horizontal, 16)
-                                                .contentShape(Rectangle())
-                                                .onTapGesture {
-                                                    withAnimation(.spring(response: 0.3)) {
-                                                        selectedTransaction = selectedTransaction == transaction ? nil : transaction
+                                            ForEach(group.transactions) { transaction in
+                                                VStack(spacing: 0) {
+                                                    TransactionRow(transaction: transaction)
+                                                        .padding(.horizontal, 16)
+                                                        .contentShape(Rectangle())
+                                                        .onTapGesture {
+                                                            withAnimation(.spring(response: 0.3)) {
+                                                                selectedTransaction = selectedTransaction == transaction ? nil : transaction
+                                                            }
+                                                        }
+                                                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                                            Button(role: .destructive) {
+                                                                deleteTransaction(transaction)
+                                                            } label: {
+                                                                Label("Delete", systemImage: "trash")
+                                                            }
+                                                        }
+                                                        .swipeActions(edge: .leading) {
+                                                            Button {
+                                                                // Edit action
+                                                            } label: {
+                                                                Label("Edit", systemImage: "pencil")
+                                                            }
+                                                            .tint(.blue)
+                                                        }
+                                                    
+                                                    if selectedTransaction == transaction {
+                                                        TransactionDetailView(transaction: transaction)
+                                                            .transition(.move(edge: .top).combined(with: .opacity))
                                                     }
+                                                    
+                                                    Divider()
+                                                        .padding(.leading, 80)
+                                                        .padding(.trailing, 16)
                                                 }
-                                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                                    Button(role: .destructive) {
-                                                        deleteTransaction(transaction)
-                                                    } label: {
-                                                        Label("Delete", systemImage: "trash")
-                                                    }
-                                                }
-                                                .swipeActions(edge: .leading) {
-                                                    Button {
-                                                        // Edit action
-                                                    } label: {
-                                                        Label("Edit", systemImage: "pencil")
-                                                    }
-                                                    .tint(.blue)
-                                                }
-                                            
-                                            if selectedTransaction == transaction {
-                                                TransactionDetailView(transaction: transaction)
-                                                    .transition(.move(edge: .top).combined(with: .opacity))
                                             }
-                                            
-                                            Divider()
-                                                .padding(.leading, 80)
-                                                .padding(.trailing, 16)
                                         }
+                                        .background(Color(.systemBackground))
                                     }
                                 }
-                                .background(Color(.systemBackground))
                             }
                         }
+                        .background(Color(.systemGroupedBackground))
                     }
                 }
-                .background(Color(.systemGroupedBackground))
             }
             .navigationTitle("Transactions")
             .toolbar {

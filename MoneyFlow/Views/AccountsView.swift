@@ -13,11 +13,21 @@ struct AccountsView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(accounts) { account in
-                    AccountRow(account: account)
+            Group {
+                if accounts.isEmpty {
+                    EmptyStateView(
+                        title: "No Accounts Yet",
+                        message: "Add your first bank account or wallet to get started",
+                        systemImage: "empty_account"
+                    )
+                } else {
+                    List {
+                        ForEach(accounts) { account in
+                            AccountRow(account: account)
+                        }
+                        .onDelete(perform: deleteAccounts)
+                    }
                 }
-                .onDelete(perform: deleteAccounts)
             }
             .navigationTitle("Accounts")
             .toolbar {
