@@ -15,7 +15,9 @@ struct AccountsView: View {
         NavigationView {
             List {
                 ForEach(accounts) { account in
-                    AccountRow(account: account)
+                    NavigationLink(destination: AccountDetailView(account: account)) {
+                        AccountRow(account: account)
+                    }
                 }
                 .onDelete(perform: deleteAccounts)
             }
