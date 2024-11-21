@@ -26,6 +26,8 @@
 		EA2783732CEDFAC000E5EA9A /* AddAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2783682CEDFAC000E5EA9A /* AddAccountView.swift */; };
 		EA2783752CEDFAF300E5EA9A /* DataController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2783742CEDFAF300E5EA9A /* DataController.swift */; };
 		EA2783772CEE589300E5EA9A /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2783762CEE589300E5EA9A /* EmptyStateView.swift */; };
+		EAF85F062CEF0D3A006F5B39 /* AccountDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF85F052CEF0D3A006F5B39 /* AccountDetailView.swift */; };
+		EAF85F082CEF0D58006F5B39 /* EditAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAF85F072CEF0D58006F5B39 /* EditAccountView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +51,8 @@
 		EA2783682CEDFAC000E5EA9A /* AddAccountView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddAccountView.swift; sourceTree = "<group>"; };
 		EA2783742CEDFAF300E5EA9A /* DataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataController.swift; sourceTree = "<group>"; };
 		EA2783762CEE589300E5EA9A /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		EAF85F052CEF0D3A006F5B39 /* AccountDetailView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AccountDetailView.swift; sourceTree = "<group>"; };
+		EAF85F072CEF0D58006F5B39 /* EditAccountView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditAccountView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,7 +109,9 @@
 			isa = PBXGroup;
 			children = (
 				EA2783642CEDFAC000E5EA9A /* AccountsView.swift */,
+				EAF85F052CEF0D3A006F5B39 /* AccountDetailView.swift */,
 				EA2783682CEDFAC000E5EA9A /* AddAccountView.swift */,
+				EAF85F072CEF0D58006F5B39 /* EditAccountView.swift */,
 				EA2783622CEDFAC000E5EA9A /* AddBudgetView.swift */,
 				EA27835E2CEDFAC000E5EA9A /* AddTransactionView.swift */,
 				EA2783652CEDFAC000E5EA9A /* AddTransferView.swift */,
@@ -219,9 +225,11 @@
 				EA27834A2CEDFA0500E5EA9A /* MoneyFlowApp.swift in Sources */,
 				EA2783702CEDFAC000E5EA9A /* AddTransferView.swift in Sources */,
 				EA2783592CEDFA2900E5EA9A /* MoneyFlow.xcdatamodeld in Sources */,
+				EAF85F082CEF0D58006F5B39 /* EditAccountView.swift in Sources */,
 				EA2783722CEDFAC000E5EA9A /* BudgetView.swift in Sources */,
 				EA2783752CEDFAF300E5EA9A /* DataController.swift in Sources */,
 				EA2783712CEDFAC000E5EA9A /* OnboardingView.swift in Sources */,
+				EAF85F062CEF0D3A006F5B39 /* AccountDetailView.swift in Sources */,
 				EA2783692CEDFAC000E5EA9A /* AddTransactionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
