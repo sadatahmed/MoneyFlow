@@ -4,13 +4,13 @@ import CoreData
 struct TransactionsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.colorScheme) private var colorScheme
+    @Binding var showingAddTransaction: Bool
     
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Transaction.date, ascending: false)],
         animation: .default)
     private var transactions: FetchedResults<Transaction>
     
-    @State private var showingAddTransaction = false
     @State private var searchText = ""
     @State private var selectedFilter = "all"
     @State private var selectedTransaction: Transaction?
@@ -99,9 +99,8 @@ struct TransactionsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAddTransaction = true }) {
-                        Image(systemName: "plus.circle.fill")
-                            .symbolRenderingMode(.hierarchical)
-                            .font(.system(.title3))
+                        Image(systemName: "plus")
+                            .fontWeight(.semibold)
                     }
                 }
                 
