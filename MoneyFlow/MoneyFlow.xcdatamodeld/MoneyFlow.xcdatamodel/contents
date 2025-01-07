@@ -35,4 +35,9 @@
         <relationship name="account" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Account" inverseName="transactions" inverseEntity="Account"/>
         <relationship name="recurringDetails" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="RecurringTransaction" inverseName="transaction" inverseEntity="RecurringTransaction"/>
     </entity>
+    <entity name="Category" representedClassName="Category" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
 </model>
