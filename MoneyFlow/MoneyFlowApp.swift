@@ -17,9 +17,16 @@ struct MoneyFlowApp: App {
         WindowGroup {
             if isFirstLaunch {
                 OnboardingView()
+                    .environment(\.managedObjectContext, dataController.container.viewContext)
+                    .onAppear {
+                        dataController.seedDefaultCategories()
+                    }
             } else {
                 MainTabView()
                     .environment(\.managedObjectContext, dataController.container.viewContext)
+                    .onAppear {
+                        dataController.seedDefaultCategories()
+                    }
             }
         }
     }

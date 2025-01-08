@@ -282,8 +282,8 @@ struct DashboardView: View {
         var runningBalance = calculateTotalBalance()
         
         // Get all transactions sorted by date
-        let sortedTransactions = transactions.sorted { 
-            ($0.date ?? Date()) > ($1.date ?? Date()) 
+        let sortedTransactions = transactions.sorted {
+            ($0.date ?? Date()) > ($1.date ?? Date())
         }
         
         switch selectedChartPeriod {
@@ -621,4 +621,4 @@ struct TrendCard: View {
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(10)
     }
-} 
+}
