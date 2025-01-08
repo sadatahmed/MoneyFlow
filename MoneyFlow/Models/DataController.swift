@@ -144,5 +144,52 @@ class DataController: ObservableObject {
         container.viewContext.delete(object)
         save()
     }
+    
+    // Add these methods
+    func createCategory(name: String) -> Category {
+        let category = Category(context: container.viewContext)
+        category.id = UUID()
+        category.name = name
+        category.createdAt = Date()
+        save()
+        return category
+    }
+    
+    func deleteCategory(_ category: Category) {
+        container.viewContext.delete(category)
+        save()
+    }
+    
+    // Add this method to seed default categories if needed
+    func seedDefaultCategories() {
+        let defaultCategories = ["Food", "Transport", "Entertainment", "Shopping", "Bills", "Other"]
+        
+        for categoryName in defaultCategories {
+            // Only create if it doesn't exist
+            if !categoryExists(categoryName) {
+                let category = Category(context: container.viewContext)
+                category.id = UUID()
+                category.name = categoryName
+                category.createdAt = Date()
+            }
+        }
+        
+        // Save after creating all categories
+        save()
+    }
+    
+    // Add a method to check if a category already exists
+    func categoryExists(_ name: String) -> Bool {
+        let fetchRequest: NSFetchRequest<Category> = Category.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "name ==[c] %@", name)
+        
+        do {
+            let count = try container.viewContext.count(for: fetchRequest)
+            return count > 0
+        } catch {
+            print("Error checking category existence: \(error)")
+            return false
+        }
+    }
 }
 
