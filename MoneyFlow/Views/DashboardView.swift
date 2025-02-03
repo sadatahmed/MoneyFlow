@@ -2,488 +2,358 @@ import SwiftUI
 import CoreData
 import Charts
 
+// MARK: - Main Dashboard View
 struct DashboardView: View {
+    // MARK: - Core Data Properties
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.colorScheme) private var colorScheme
-    
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Transaction.date, ascending: false)],
-        animation: .default)
-    private var transactions: FetchedResults<Transaction>
-    
+        animation: .default
+    ) private var transactions: FetchedResults<Transaction>
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Account.name, ascending: true)],
-        animation: .default)
-    private var accounts: FetchedResults<Account>
+        animation: .default
+    ) private var accounts: FetchedResults<Account>
     
-    @State private var selectedChartPeriod = "week"
-    private let chartPeriods = ["week", "month", "year"]
+    // MARK: - View States
+    @State private var selectedChartPeriod: ChartPeriod = .week
+    @State private var showingTransactionSheet = false
+    @Environment(\.colorScheme) private var colorScheme
     
+    // MARK: - Main Body
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 16) {
-                    // Total Balance Card
-                    DashboardCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label("Total Balance", systemImage: "creditcard.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            
-                            Text("$\(calculateTotalBalance(), specifier: "%.2f")")
-                                .font(.system(.title, design: .rounded))
-                                .bold()
-                                .foregroundStyle(calculateTotalBalance() >= 0 ? .primary : Color.red)
-                        }
+                VStack(spacing: 20) {
+                    TotalBalanceCard(totalBalance: calculateTotalBalance())
+                    
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                        IncomeCard(amount: calculateMonthlyIncome())
+                        ExpenseCard(amount: calculateMonthlyExpenses())
                     }
                     
-                    // Monthly Overview
-                    HStack(spacing: 16) {
-                        // Income Card
-                        DashboardCard {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Label("Income", systemImage: "arrow.down.circle.fill")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                
-                                Text("$\(calculateMonthlyIncome(), specifier: "%.2f")")
-                                    .font(.system(.title3, design: .rounded))
-                                    .bold()
-                                    .foregroundStyle(.green)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        
-                        // Expenses Card
-                        DashboardCard {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Label("Expenses", systemImage: "arrow.up.circle.fill")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                
-                                Text("$\(abs(calculateMonthlyExpenses()), specifier: "%.2f")")
-                                    .font(.system(.title3, design: .rounded))
-                                    .bold()
-                                    .foregroundStyle(.red)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
+                    BalanceTrendChart(
+                        selectedPeriod: $selectedChartPeriod,
+                        chartData: getChartData(),
+                        colorScheme: colorScheme
+                    )
                     
-                    // Recent Transactions
-                    DashboardCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Label("Recent Transactions", systemImage: "clock.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            
-                            if transactions.isEmpty {
-                                HStack {
-                                    Spacer()
-                                    VStack(spacing: 8) {
-                                        Image(systemName: "tray.fill")
-                                            .font(.title)
-                                            .foregroundStyle(.secondary)
-                                        Text("No transactions yet")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .padding(.vertical, 20)
-                                    Spacer()
-                                }
-                            } else {
-                                VStack(spacing: 12) {
-                                    ForEach(Array(transactions.prefix(3))) { transaction in
-                                        DashboardTransactionRow(transaction: transaction)
-                                        if transaction != transactions.prefix(3).last {
-                                            Divider()
-                                                .background(Color(.separator))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    RecentTransactionsSection(transactions: transactions)
                     
-                    // Analytics Section
-                    DashboardCard {
-                        VStack(alignment: .leading, spacing: 16) {
-                            // Header
-                            HStack {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "chart.xyaxis.line")
-                                    Text("Balance Trend")
-                                }
-                                .font(.headline)
-                                
-                                Spacer()
-                                
-                                Menu {
-                                    ForEach(chartPeriods, id: \.self) { period in
-                                        Button(period.capitalized) {
-                                            selectedChartPeriod = period
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(selectedChartPeriod.capitalized)
-                                            .foregroundStyle(.blue)
-                                        Image(systemName: "chevron.down")
-                                            .foregroundStyle(.blue)
-                                            .font(.caption)
-                                    }
-                                }
-                            }
-                            
-                            // Balance Chart
-                            Chart {
-                                ForEach(getChartData(), id: \.date) { data in
-                                    LineMark(
-                                        x: .value("Date", data.date),
-                                        y: .value("Balance", data.balance)
-                                    )
-                                    .foregroundStyle(Color.blue)
-                                    .interpolationMethod(.catmullRom)
-                                    
-                                    AreaMark(
-                                        x: .value("Date", data.date),
-                                        y: .value("Balance", data.balance)
-                                    )
-                                    .foregroundStyle(
-                                        .linearGradient(
-                                            colors: [
-                                                Color.blue.opacity(0.2),
-                                                Color.blue.opacity(0.05)
-                                            ],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
-                                }
-                            }
-                            .frame(height: 180)
-                            .chartYAxis {
-                                AxisMarks(position: .leading) { value in
-                                    if let balance = value.as(Double.self) {
-                                        AxisGridLine()
-                                            .foregroundStyle(Color.gray.opacity(0.1))
-                                        AxisValueLabel {
-                                            Text("\(formatAxisValue(balance))K")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-                            }
-                            .chartXAxis {
-                                AxisMarks { value in
-                                    if let date = value.as(Date.self) {
-                                        AxisGridLine()
-                                            .foregroundStyle(Color.gray.opacity(0.1))
-                                        AxisValueLabel {
-                                            Text(formatDate(date))
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Spending by Category
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Spending by Category")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                
-                                Chart(getCategoryData(), id: \.category) { data in
-                                    SectorMark(
-                                        angle: .value("Amount", abs(data.amount)),
-                                        innerRadius: .ratio(0.618),
-                                        angularInset: 1.5
-                                    )
-                                    .foregroundStyle(by: .value("Category", data.category))
-                                    .annotation(position: .overlay) {
-                                        Text(data.percentage)
-                                            .font(.caption2)
-                                            .foregroundStyle(.white)
-                                    }
-                                }
-                                .frame(height: 200)
-                                .chartLegend(position: .bottom)
-                            }
-                            
-                            // Trends
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Trends")
-                                    .font(.headline)
-                                
-                                HStack(spacing: 16) {
-                                    TrendCard(
-                                        title: "Avg. Daily Spending",
-                                        value: getAverageDailySpending(),
-                                        trend: getDailySpendingTrend()
-                                    )
-                                    
-                                    TrendCard(
-                                        title: "Most Spent On",
-                                        value: getTopCategory().0,
-                                        trend: String(format: "%.1f%%", getTopCategory().1)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    SpendingAnalyticsSection(
+                        categoryData: getCategoryData(),
+                        averageSpending: getAverageDailySpending(),
+                        topCategory: getTopCategory()
+                    )
                 }
-                .padding(.horizontal)
-                .padding(.top, 8)
+                .padding()
             }
             .navigationTitle("Dashboard")
-            .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            .background(Color.systemGroupedBackground.ignoresSafeArea())
         }
     }
     
+    // MARK: - Data Calculations
     private func calculateTotalBalance() -> Double {
-        // Sum of all account balances
-        return accounts.reduce(0) { $0 + $1.balance }
+        accounts.reduce(0) { $0 + $1.balance }
     }
     
     private func calculateMonthlyIncome() -> Double {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
-        
-        return transactions
-            .filter { transaction in
-                guard let date = transaction.date else { return false }
-                return date >= startOfMonth && date <= endOfMonth && transaction.amount > 0
-            }
-            .reduce(0) { $0 + $1.amount }
+        transactions.filter { $0.isIncome && $0.isThisMonth }.reduce(0) { $0 + $1.amount }
     }
     
     private func calculateMonthlyExpenses() -> Double {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth)!
-        
-        return transactions
-            .filter { transaction in
-                guard let date = transaction.date else { return false }
-                return date >= startOfMonth && date <= endOfMonth && transaction.amount < 0
-            }
-            .reduce(0) { $0 + $1.amount }
+        abs(transactions.filter { $0.isExpense && $0.isThisMonth }.reduce(0) { $0 + $1.amount })
     }
     
-    // Helper methods for chart data
     private func getChartData() -> [ChartData] {
         let calendar = Calendar.current
         let now = Date()
-        var chartData: [ChartData] = []
+        var data: [ChartData] = []
         var runningBalance = calculateTotalBalance()
-        
-        // Get all transactions sorted by date
-        let sortedTransactions = transactions.sorted {
-            ($0.date ?? Date()) > ($1.date ?? Date())
-        }
+        let sortedTransactions = transactions.sorted { $0.wrappedDate > $1.wrappedDate }
         
         switch selectedChartPeriod {
-        case "week":
-            // Last 7 days data
-            for day in 0..<7 {
-                let date = calendar.date(byAdding: .day, value: -day, to: now)!
-                let dayStart = calendar.startOfDay(for: date)
-                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-                
-                // Calculate balance for this day
-                let dayTransactions = sortedTransactions.filter { transaction in
-                    guard let transactionDate = transaction.date else { return false }
-                    return transactionDate >= dayStart && transactionDate < dayEnd
-                }
-                
-                // Subtract the day's transactions from running balance
-                for transaction in dayTransactions {
-                    runningBalance -= transaction.amount
-                }
-                
-                let dayData = getDataForDate(date)
-                chartData.append(ChartData(
-                    date: date,
-                    balance: runningBalance,
-                    income: dayData.income,
-                    expenses: dayData.expenses
-                ))
+        case .week:
+            for dayOffset in 0..<7 {
+                let date = calendar.date(byAdding: .day, value: -dayOffset, to: now)!
+                let transactions = sortedTransactions.filter { calendar.isDate($0.wrappedDate, inSameDayAs: date) }
+                runningBalance -= transactions.reduce(0) { $0 + $1.amount }
+                data.append(ChartData(date: date, balance: runningBalance))
             }
-            
-        case "month":
-            // Last 30 days data
-            for day in 0..<30 {
-                let date = calendar.date(byAdding: .day, value: -day, to: now)!
-                let dayStart = calendar.startOfDay(for: date)
-                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-                
-                let dayTransactions = sortedTransactions.filter { transaction in
-                    guard let transactionDate = transaction.date else { return false }
-                    return transactionDate >= dayStart && transactionDate < dayEnd
-                }
-                
-                for transaction in dayTransactions {
-                    runningBalance -= transaction.amount
-                }
-                
-                let dayData = getDataForDate(date)
-                chartData.append(ChartData(
-                    date: date,
-                    balance: runningBalance,
-                    income: dayData.income,
-                    expenses: dayData.expenses
-                ))
+        case .month:
+            for dayOffset in 0..<30 {
+                let date = calendar.date(byAdding: .day, value: -dayOffset, to: now)!
+                let transactions = sortedTransactions.filter { calendar.isDate($0.wrappedDate, inSameDayAs: date) }
+                runningBalance -= transactions.reduce(0) { $0 + $1.amount }
+                data.append(ChartData(date: date, balance: runningBalance))
             }
-            
-        case "year":
-            // Last 12 months data
-            for month in 0..<12 {
-                let date = calendar.date(byAdding: .month, value: -month, to: now)!
-                let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date))!
-                let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart)!
-                
-                let monthTransactions = sortedTransactions.filter { transaction in
-                    guard let transactionDate = transaction.date else { return false }
-                    return transactionDate >= monthStart && transactionDate < monthEnd
-                }
-                
-                for transaction in monthTransactions {
-                    runningBalance -= transaction.amount
-                }
-                
-                let monthData = getDataForDate(date, groupBy: .month)
-                chartData.append(ChartData(
-                    date: date,
-                    balance: runningBalance,
-                    income: monthData.income,
-                    expenses: monthData.expenses
-                ))
+        case .year:
+            for monthOffset in 0..<12 {
+                let date = calendar.date(byAdding: .month, value: -monthOffset, to: now)!
+                let transactions = sortedTransactions.filter { calendar.isDate($0.wrappedDate, equalTo: date, toGranularity: .month) }
+                runningBalance -= transactions.reduce(0) { $0 + $1.amount }
+                data.append(ChartData(date: date, balance: runningBalance))
             }
-            
-        default:
-            break
         }
-        
-        return chartData.reversed()
-    }
-    
-    private func getDataForDate(_ date: Date, groupBy: Calendar.Component = .day) -> ChartData {
-        let calendar = Calendar.current
-        let dateInterval = calendar.dateInterval(of: groupBy, for: date)!
-        
-        let dayTransactions = transactions.filter { transaction in
-            guard let transactionDate = transaction.date else { return false }
-            return calendar.isDate(transactionDate, equalTo: date, toGranularity: groupBy)
-        }
-        
-        let income = dayTransactions
-            .filter { $0.amount > 0 }
-            .reduce(0) { $0 + $1.amount }
-        
-        let expenses = abs(dayTransactions
-            .filter { $0.amount < 0 }
-            .reduce(0) { $0 + $1.amount })
-        
-        // Calculate balance for this date
-        let balance = dayTransactions.reduce(0) { $0 + $1.amount }
-        
-        return ChartData(
-            date: date,
-            balance: balance,
-            income: income,
-            expenses: expenses
-        )
+        return data.reversed()
     }
     
     private func getCategoryData() -> [CategoryData] {
-        let expensesByCategory = Dictionary(grouping: transactions.filter { $0.amount < 0 }) { $0.category ?? "Uncategorized" }
-        let totalExpenses = abs(transactions.filter { $0.amount < 0 }.reduce(0) { $0 + $1.amount })
-        
-        return expensesByCategory.map { category, transactions in
-            let amount = abs(transactions.reduce(0) { $0 + $1.amount })
-            let percentage = String(format: "%.0f%%", (amount / totalExpenses) * 100)
-            return CategoryData(category: category, amount: amount, percentage: percentage)
+        let expenses = transactions.filter { $0.isExpense }
+        let grouped = Dictionary(grouping: expenses) { $0.wrappedCategory }
+        let total = expenses.reduce(0) { $0 + abs($1.amount) }
+        return grouped.map { key, value in
+            let amount = value.reduce(0) { $0 + abs($1.amount) }
+            return CategoryData(
+                category: key,
+                amount: amount,
+                percentage: total > 0 ? (amount / total) * 100 : 0
+            )
         }.sorted { $0.amount > $1.amount }
     }
     
-    private func getAverageDailySpending() -> String {
-        let calendar = Calendar.current
-        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date())!
-        
-        let recentExpenses = transactions.filter { transaction in
-            guard let date = transaction.date else { return false }
-            return date >= thirtyDaysAgo && transaction.amount < 0
-        }
-        
-        let totalExpenses = abs(recentExpenses.reduce(0) { $0 + $1.amount })
-        let averageDaily = totalExpenses / 30
-        
-        return String(format: "$%.2f", averageDaily)
+    private func getAverageDailySpending() -> Double {
+        let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date())!
+        let expenses = transactions.filter { $0.isExpense && $0.wrappedDate >= thirtyDaysAgo }
+        let total = expenses.reduce(0) { $0 + abs($1.amount) }
+        return total / 30
     }
     
-    private func getDailySpendingTrend() -> String {
-        // Calculate trend compared to previous period
-        // Positive percentage means spending increased
-        return "+5.2%" // Placeholder
+    private func getTopCategory() -> (name: String, percentage: Double) {
+        let categories = getCategoryData()
+        return (categories.first?.category ?? "No Data", categories.first?.percentage ?? 0)
     }
+}
+
+// MARK: - Subviews
+struct TotalBalanceCard: View {
+    let totalBalance: Double
     
-    private func getTopCategory() -> (String, Double) {
-        let expensesByCategory = Dictionary(grouping: transactions.filter { $0.amount < 0 }) { $0.category ?? "Uncategorized" }
-        let totalExpenses = abs(transactions.filter { $0.amount < 0 }.reduce(0) { $0 + $1.amount })
-        
-        let topCategory = expensesByCategory.max { a, b in
-            abs(a.value.reduce(0) { $0 + $1.amount }) < abs(b.value.reduce(0) { $0 + $1.amount })
-        }
-        
-        if let category = topCategory {
-            let amount = abs(category.value.reduce(0) { $0 + $1.amount })
-            let percentage = (amount / totalExpenses) * 100
-            return (category.key, percentage)
-        }
-        
-        return ("None", 0)
-    }
-    
-    private func formatAxisValue(_ value: Double) -> String {
-        if abs(value) >= 1000 {
-            return String(format: "%.1fK", value / 1000)
-        }
-        return String(format: "%.0f", value)
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = selectedChartPeriod == "week" ? "dd/MM" : "MM/yy"
-        return formatter.string(from: date)
-    }
-    
-    private func getBalanceRange() -> ClosedRange<Double> {
-        let data = getChartData()
-        let balances = data.map { $0.balance }
-        let minBalance = balances.min() ?? 0
-        let maxBalance = balances.max() ?? 0
-        let padding = (maxBalance - minBalance) * 0.1
-        
-        return (minBalance - padding)...(maxBalance + padding)
-    }
-    
-    // Add this helper function for category colors
-    private func getCategoryColor(_ category: String) -> Color {
-        switch category {
-        case "Transport": return .blue
-        case "Entertainment": return .green
-        case "Shopping": return .orange
-        case "Food": return .purple
-        case "Transfer": return .red
-        default: return .gray
+    var body: some View {
+        DashboardCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Total Balance", systemImage: "dollarsign.circle.fill")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Text(totalBalance.formattedCurrency)
+                    .font(.system(.largeTitle, design: .rounded))
+                    .fontWeight(.bold)
+                    .foregroundColor(totalBalance >= 0 ? .primary : .red)
+            }
         }
     }
 }
 
+struct IncomeCard: View {
+    let amount: Double
+    
+    var body: some View {
+        DashboardCard {
+            StatisticTile(
+                title: "Income",
+                value: amount.formattedCurrency,
+                icon: "arrow.down.circle.fill",
+                color: .green
+            )
+        }
+    }
+}
+
+struct ExpenseCard: View {
+    let amount: Double
+    
+    var body: some View {
+        DashboardCard {
+            StatisticTile(
+                title: "Expenses",
+                value: amount.formattedCurrency,
+                icon: "arrow.up.circle.fill",
+                color: .red
+            )
+        }
+    }
+}
+
+struct BalanceTrendChart: View {
+    @Binding var selectedPeriod: ChartPeriod
+    let chartData: [ChartData]
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        DashboardCard {
+            VStack(spacing: 16) {
+                HStack {
+                    Text("Balance Trend")
+                        .font(.headline)
+                    
+                    Spacer()
+                    
+                    Picker("Period", selection: $selectedPeriod) {
+                        ForEach(ChartPeriod.allCases, id: \.self) {
+                            Text($0.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 180)
+                }
+                
+                Chart(chartData) { data in
+                    LineMark(
+                        x: .value("Date", data.date),
+                        y: .value("Balance", data.balance)
+                    )
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    .foregroundStyle(colorScheme == .dark ? .blue : .indigo)
+                    
+                    AreaMark(
+                        x: .value("Date", data.date),
+                        y: .value("Balance", data.balance)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.indigo.opacity(0.2), .indigo.opacity(0.02)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: selectedPeriod.calendarComponent)) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(format: selectedPeriod.dateFormat)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel {
+                            if let amount = value.as(Double.self) {
+                                Text(formatAmount(amount))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                .frame(height: 200)
+            }
+        }
+    }
+    // Helper function to format Y-axis values
+    private func formatAmount(_ value: Double) -> String {
+        if abs(value) >= 1_000_000 {
+            return String(format: "%.0fM", value / 1_000_000)
+        } else if abs(value) >= 1_000 {
+            return String(format: "%.0fK", value / 1_000)
+        } else {
+            return String(format: "%.0f", value)
+        }
+    }
+}
+
+struct RecentTransactionsSection: View {
+    let transactions: FetchedResults<Transaction>
+    
+    var body: some View {
+        DashboardCard {
+            VStack(spacing: 12) {
+                HStack {
+                    Text("Recent Transactions")
+                        .font(.headline)
+                    
+                    Spacer()
+                    
+                    NavigationLink(destination: TransactionsListView(transactions: groupTransactionsByDate(), searchText: "")) {
+                        Text("See All")
+                            .font(.subheadline)
+                    }
+                }
+                
+                if transactions.isEmpty {
+                    EmptyStateView(
+                        title: "No Transactions Yet",
+                        message: "",
+                        systemImage: "empty_transaction"
+                    )
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(transactions.prefix(3)) { transaction in
+                            DashboardTransactionRow(transaction: transaction)
+                            
+                            if transaction != transactions.prefix(3).last {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // Helper function to group transactions by date
+    private func groupTransactionsByDate() -> [(date: Date, transactions: [Transaction])] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: transactions) { transaction in
+            calendar.startOfDay(for: transaction.wrappedDate)
+        }
+        
+        return grouped.map { (key, value) in
+            (date: key, transactions: value.sorted { $0.wrappedDate > $1.wrappedDate })
+        }.sorted { $0.date > $1.date }
+    }
+}
+
+
+struct SpendingAnalyticsSection: View {
+    let categoryData: [CategoryData]
+    let averageSpending: Double
+    let topCategory: (name: String, percentage: Double)
+    
+    var body: some View {
+        DashboardCard {
+            VStack(spacing: 20) {
+                Text("Spending Analytics")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Chart(categoryData) { data in
+                    SectorMark(
+                        angle: .value("Spending", data.amount),
+                        innerRadius: .ratio(0.6),
+                        angularInset: 2
+                    )
+                    .foregroundStyle(by: .value("Category", data.category))
+                    .annotation(position: .overlay) {
+                        Text("\(Int(data.percentage))%")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(height: 200)
+                .chartLegend(position: .bottom, alignment: .center)
+                
+                HStack(spacing: 16) {
+                    TrendCard(
+                        title: "Daily Average",
+                        value: averageSpending.formattedCurrency,
+                        trend: "Last 30 days"
+                    )
+                    
+                    TrendCard(
+                        title: "Top Category",
+                        value: topCategory.name,
+                        trend: "\(Int(topCategory.percentage))% of total"
+                    )
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Helper Components
 struct DashboardCard<Content: View>: View {
     let content: Content
     
@@ -493,17 +363,35 @@ struct DashboardCard<Content: View>: View {
     
     var body: some View {
         content
-            .padding(16)
+            .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
+            .background(Color.secondarySystemGroupedBackground)
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+    }
+}
+
+struct StatisticTile: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(title, systemImage: icon)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.semibold)
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color(.separator).opacity(0.1), lineWidth: 1)
-            }
-            .shadow(color: Color(.sRGBLinear, white: 0, opacity: 0.05), radius: 10)
+            
+            Spacer()
+        }
+        .foregroundColor(color)
     }
 }
 
@@ -512,113 +400,154 @@ struct DashboardTransactionRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Category Icon
-            ZStack {
-                Circle()
-                    .fill(getCategoryColor())
-                    .frame(width: 40, height: 40)
-                
-                Image(systemName: getCategoryIcon())
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
+            Image(systemName: transaction.categoryIcon)
+                .frame(width: 40, height: 40)
+                .background(transaction.categoryColor.opacity(0.2))
+                .foregroundColor(transaction.categoryColor)
+                .cornerRadius(8)
             
-            // Transaction Details
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.category ?? "Uncategorized")
-                    .font(.system(.body, design: .rounded))
+                Text(transaction.wrappedCategory)
+                    .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundStyle(.primary)
                 
-                if let note = transaction.note, !note.isEmpty {
-                    Text(note)
+                if !transaction.wrappedNote.isEmpty {
+                    Text(transaction.wrappedNote)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
             }
             
             Spacer()
             
-            // Amount and Date
             VStack(alignment: .trailing, spacing: 4) {
-                Text("$\(transaction.amount, specifier: "%.2f")")
-                    .font(.system(.body, design: .rounded))
-                    .bold()
-                    .foregroundStyle(transaction.amount >= 0 ? .green : .red)
+                Text(transaction.amount.formattedCurrency)
+                    .font(.subheadline)
+                    .foregroundColor(transaction.isIncome ? .green : .red)
                 
-                if let date = transaction.date {
-                    Text(date, style: .date)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                Text(transaction.wrappedDate, format: .dateTime.day().month())
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
         }
-        .contentShape(Rectangle())
-    }
-    
-    private func getCategoryColor() -> Color {
-        switch transaction.category {
-        case "Food": return .orange
-        case "Transport": return .blue
-        case "Entertainment": return .purple
-        case "Shopping": return .green
-        case "Bills": return .red
-        default: return .gray
-        }
-    }
-    
-    private func getCategoryIcon() -> String {
-        switch transaction.category {
-        case "Food": return "fork.knife"
-        case "Transport": return "car.fill"
-        case "Entertainment": return "tv.fill"
-        case "Shopping": return "cart.fill"
-        case "Bills": return "doc.text.fill"
-        default: return "questionmark"
-        }
     }
 }
 
-// Data structures for charts
-struct ChartData {
-    let date: Date
-    let balance: Double
-    
-    // We'll keep these for other analytics
-    let income: Double
-    let expenses: Double
-}
-
-struct CategoryData {
-    let category: String
-    let amount: Double
-    let percentage: String
-}
-
-// Trend Card Component
 struct TrendCard: View {
     let title: String
     let value: String
     let trend: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
             
             Text(value)
                 .font(.subheadline)
-                .bold()
+                .fontWeight(.medium)
             
             Text(trend)
-                .font(.caption2)
-                .foregroundStyle(trend.hasPrefix("-") ? .red : .green)
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
+        .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(10)
+        .background(Color.tertiarySystemGroupedBackground)
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - Data Models
+struct ChartData: Identifiable {
+    let id = UUID()
+    let date: Date
+    let balance: Double
+}
+
+struct CategoryData: Identifiable {
+    let id = UUID()
+    let category: String
+    let amount: Double
+    let percentage: Double
+}
+
+enum ChartPeriod: String, CaseIterable {
+    case week = "Week"
+    case month = "Month"
+    case year = "Year"
+    
+    var calendarComponent: Calendar.Component {
+        switch self {
+        case .week: return .day
+        case .month: return .day
+        case .year: return .month
+        }
+    }
+    
+    var dateFormat: Date.FormatStyle {
+        switch self {
+        case .week: return .dateTime.day().month()
+        case .month: return .dateTime.day().month()
+        case .year: return .dateTime.month(.abbreviated)
+        }
+    }
+}
+
+// MARK: - Extensions
+extension Double {
+    var formattedCurrency: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: NSNumber(value: self)) ?? ""
+    }
+}
+
+extension Transaction {
+    var wrappedDate: Date { date ?? Date() }
+    var wrappedCategory: String { category ?? "Uncategorized" }
+    var wrappedNote: String { note ?? "" }
+    var isIncome: Bool { amount > 0 }
+    var isExpense: Bool { amount < 0 }
+    var isThisMonth: Bool {
+        Calendar.current.isDate(wrappedDate, equalTo: Date(), toGranularity: .month)
+    }
+    
+    var categoryColor: Color {
+        switch wrappedCategory {
+        case "Food": return .orange
+        case "Transport": return .blue
+        case "Entertainment": return .purple
+        case "Shopping": return .pink
+        case "Utilities": return .green
+        default: return .gray
+        }
+    }
+    
+    var categoryIcon: String {
+        switch wrappedCategory {
+        case "Food": return "fork.knife"
+        case "Transport": return "car.fill"
+        case "Entertainment": return "film"
+        case "Shopping": return "cart.fill"
+        case "Utilities": return "wrench.fill"
+        default: return "questionmark"
+        }
+    }
+}
+
+extension Color {
+    static let systemGroupedBackground = Color(UIColor.systemGroupedBackground)
+    static let secondarySystemGroupedBackground = Color(UIColor.secondarySystemGroupedBackground)
+    static let tertiarySystemGroupedBackground = Color(UIColor.tertiarySystemGroupedBackground)
+}
+
+// MARK: - Preview
+struct DashboardView_Previews: PreviewProvider {
+    static var previews: some View {
+        DashboardView()
     }
 }
