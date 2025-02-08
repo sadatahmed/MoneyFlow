@@ -24,6 +24,7 @@ struct TransactionsView: View {
     @State private var searchText = ""
     @State private var selectedFilter: TransactionFilter = .all
     @State private var selectedTransaction: Transaction?
+    @State private var showingEditTransaction = false
     
     // MARK: - Initialization
     init(showingAddTransaction: Binding<Bool>) {
@@ -156,7 +157,8 @@ struct TransactionsView: View {
                 }
                 .swipeActions(edge: .leading) {
                     Button {
-                        // Edit action
+                        selectedTransaction = transaction
+                        showingEditTransaction = true
                     } label: {
                         Label("Edit", systemImage: "pencil")
                     }
@@ -164,13 +166,18 @@ struct TransactionsView: View {
                 }
             
             if selectedTransaction == transaction {
-                TransactionDetailView(transaction: transaction)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                TransactionDetailView(transaction: transaction) {
+                    showingEditTransaction = true
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
             
             Divider()
                 .padding(.leading, 80)
                 .padding(.trailing, 16)
+        }
+        .sheet(isPresented: $showingEditTransaction) {
+            AddTransactionView(transaction: selectedTransaction)
         }
     }
     
@@ -235,6 +242,9 @@ struct TransactionDateHeader: View {
 
 struct TransactionDetailView: View {
     let transaction: Transaction
+    let onEditTap: () -> Void
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -253,10 +263,65 @@ struct TransactionDetailView: View {
                 Text(account.name ?? "Unknown Account")
                     .font(.body)
             }
+            
+            HStack(spacing: 12) {
+                // Edit Button
+                Button(action: onEditTap) {
+                    HStack {
+                        Image(systemName: "pencil")
+                        Text("Edit")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                
+                // Delete Button
+                Button(action: {
+                    deleteTransaction()
+                }) {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("Delete")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+            }
+            .padding(.top, 8)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))
+    }
+    
+    private func deleteTransaction() {
+        viewContext.performAndWait {
+            // Update account balance before deleting
+            if let account = transaction.account {
+                account.balance -= transaction.amount
+            }
+            
+            // Delete recurring transaction if exists
+            if let recurring = transaction.recurring {
+                viewContext.delete(recurring)
+            }
+            
+            // Delete the transaction
+            viewContext.delete(transaction)
+            
+            // Save changes
+            do {
+                try viewContext.save()
+            } catch {
+                print("Error deleting transaction: \(error)")
+            }
+        }
     }
 }
 

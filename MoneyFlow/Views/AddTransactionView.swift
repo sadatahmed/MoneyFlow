@@ -114,6 +114,71 @@ final class AddTransactionViewModel: ObservableObject {
         alertMessage = "Failed to save transaction: \(error.localizedDescription)"
         showAlert = true
     }
+    
+    init(transaction: Transaction? = nil) {
+        if let transaction = transaction {
+            self.amount = String(format: "%.2f", abs(transaction.amount))
+            self.category = transaction.category ?? ""
+            self.note = transaction.note ?? ""
+            self.type = transaction.amount >= 0 ? .income : .expense
+            self.selectedAccount = transaction.account
+            self.date = transaction.date ?? Date()
+            
+            if let recurring = transaction.recurring {
+                self.isRecurring = true
+                self.frequency = RecurringFrequency(rawValue: recurring.frequency ?? "") ?? .monthly
+                self.startDate = recurring.startDate ?? Date()
+                if let endDate = recurring.endDate {
+                    self.hasEndDate = true
+                    self.endDate = endDate
+                }
+            }
+        }
+    }
+    
+    func updateTransaction(_ transaction: Transaction, in context: NSManagedObjectContext, completion: @escaping () -> Void) {
+        guard let amountDouble = Double(amount) else { return }
+        
+        context.performAndWait {
+            // Revert old account balance
+            if let oldAccount = transaction.account {
+                oldAccount.balance -= transaction.amount
+            }
+            
+            // Update transaction properties
+            transaction.amount = type == .expense ? -amountDouble : amountDouble
+            transaction.category = category
+            transaction.date = date
+            transaction.note = note
+            transaction.type = type.rawValue
+            
+            // Update account if changed
+            if let newAccount = selectedAccount {
+                transaction.account = newAccount
+                newAccount.balance += transaction.amount
+            }
+            
+            // Update recurring settings if applicable
+            if isRecurring {
+                let recurring = transaction.recurring ?? RecurringTransaction(context: context)
+                recurring.frequency = frequency.rawValue
+                recurring.startDate = startDate
+                recurring.endDate = hasEndDate ? endDate : nil
+                transaction.recurring = recurring
+            } else {
+                if let recurring = transaction.recurring {
+                    context.delete(recurring)
+                }
+            }
+            
+            do {
+                try context.save()
+                completion()
+            } catch {
+                showSaveError(error)
+            }
+        }
+    }
 }
 
 // MARK: - Enums
@@ -147,6 +212,13 @@ struct AddTransactionView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Category.name, ascending: true)],
         animation: .default)
     private var categories: FetchedResults<Category>
+    
+    let transaction: Transaction?
+    
+    init(transaction: Transaction? = nil) {
+        self.transaction = transaction
+        self._viewModel = StateObject(wrappedValue: AddTransactionViewModel(transaction: transaction))
+    }
     
     // MARK: - Body
     var body: some View {
@@ -340,11 +412,17 @@ struct AddTransactionView: View {
             VStack {
                 Spacer()
                 Button(action: {
-                    viewModel.validateAndSaveTransaction(in: viewContext) {
-                        dismiss()
+                    if let transaction = transaction {
+                        viewModel.updateTransaction(transaction, in: viewContext) {
+                            dismiss()
+                        }
+                    } else {
+                        viewModel.validateAndSaveTransaction(in: viewContext) {
+                            dismiss()
+                        }
                     }
                 }) {
-                    Text("Save Transaction")
+                    Text(transaction == nil ? "Save Transaction" : "Update Transaction")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
