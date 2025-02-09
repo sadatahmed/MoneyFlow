@@ -21,13 +21,13 @@ struct AddTransferView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     
-    private var secondaryBackgroundColor: Color {
+    private var bgColor: Color {
         colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5)
     }
     
     var body: some View {
         ZStack {
-            Color(.black)
+            Color(.secondarySystemGroupedBackground)
                 .ignoresSafeArea()
             
             VStack(spacing: 24) {
@@ -40,7 +40,8 @@ struct AddTransferView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
+                    .fontWeight(.bold)
                 }
                 .padding()
                 
@@ -61,7 +62,7 @@ struct AddTransferView: View {
                                     .keyboardType(.decimalPad)
                             }
                             .padding()
-                            .background(secondaryBackgroundColor)
+                            .background(bgColor)
                             .cornerRadius(12)
                         }
                         .padding(.horizontal)
@@ -98,7 +99,7 @@ struct AddTransferView: View {
                                             .foregroundColor(.secondary)
                                     }
                                     .padding()
-                                    .background(secondaryBackgroundColor)
+                                    .background(bgColor)
                                     .cornerRadius(12)
                                 }
                             }
@@ -133,7 +134,7 @@ struct AddTransferView: View {
                                             .foregroundColor(.secondary)
                                     }
                                     .padding()
-                                    .background(secondaryBackgroundColor)
+                                    .background(bgColor)
                                     .cornerRadius(12)
                                 }
                             }
@@ -150,7 +151,7 @@ struct AddTransferView: View {
                                 DatePicker("", selection: $date, displayedComponents: .date)
                                     .datePickerStyle(.compact)
                                     .padding()
-                                    .background(secondaryBackgroundColor)
+                                    .background(bgColor)
                                     .cornerRadius(12)
                             }
                             
@@ -161,7 +162,7 @@ struct AddTransferView: View {
                                 
                                 TextField("Add note", text: $note)
                                     .padding()
-                                    .background(secondaryBackgroundColor)
+                                    .background(bgColor)
                                     .cornerRadius(12)
                             }
                         }

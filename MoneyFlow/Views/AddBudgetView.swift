@@ -21,18 +21,13 @@ struct AddBudgetView: View {
         "Other": "square.grid.2x2.fill"
     ]
     
-    // Color computing properties
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color(.black) : .white
-    }
-    
-    private var secondaryBackgroundColor: Color {
-        colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5)
+    private var bgColor: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
     }
     
     var body: some View {
         ZStack {
-            backgroundColor
+            Color(.systemGroupedBackground)
                 .ignoresSafeArea()
             
             VStack(spacing: 24) {
@@ -45,7 +40,8 @@ struct AddBudgetView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
+                    .fontWeight(.bold)
                 }
                 .padding()
                 
@@ -84,7 +80,7 @@ struct AddBudgetView: View {
                                     .multilineTextAlignment(.leading)
                             }
                             .padding()
-                            .background(secondaryBackgroundColor)
+                            .background(bgColor)
                             .cornerRadius(12)
                         }
                         .padding(.horizontal)
@@ -151,7 +147,7 @@ struct AddBudgetView: View {
             .background(
                 category == categoryItem ?
                 Color.blue.opacity(0.2) :
-                    secondaryBackgroundColor
+                    bgColor
             )
             .foregroundColor(category == categoryItem ? .blue : .primary)
             .cornerRadius(12)
@@ -174,7 +170,7 @@ struct AddBudgetView: View {
                 .background(
                     period == periodItem ?
                     Color.blue.opacity(0.2) :
-                        secondaryBackgroundColor
+                        bgColor
                 )
                 .foregroundColor(period == periodItem ? .blue : .primary)
                 .cornerRadius(12)

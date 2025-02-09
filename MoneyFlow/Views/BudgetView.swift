@@ -37,6 +37,11 @@ struct BudgetView: View {
                         .padding(.bottom, 80)
                     }
                 }
+                .overlay {
+                    if budgets.isEmpty {
+                        EmptyStateView(title: "", message: "", systemImage: "")
+                    }
+                }
                 
                 // Floating action button
                 FloatingAddButton {
@@ -47,11 +52,11 @@ struct BudgetView: View {
                 .padding()
             }
             .navigationTitle("Budget")
-            .overlay {
-                if budgets.isEmpty {
-                    ModernEmptyState()
-                }
-            }
+//            .overlay {
+//                if budgets.isEmpty {
+//                    ModernEmptyState()
+//                }
+//            }
             .sheet(isPresented: $showingAddBudget) {
                 AddBudgetView()
                     .presentationDetents([.large, .medium])
@@ -87,15 +92,9 @@ struct AnimatedRingChart: View {
                 .rotationEffect(.degrees(-90))
                 .shadow(color: .blue.opacity(0.1), radius: 12)
             
-            Text({
-                if animatedProgress.isFinite && !animatedProgress.isNaN {
-                    return "\(Int(animatedProgress * 100))%"
-                }
-                return "0%"
-            }()
-            )
-            .font(.title3)
-            .fontWeight(.bold)
+            Text(animatedProgress.isFinite && !animatedProgress.isNaN ? "\(Int(animatedProgress * 100))%" : "0%")
+                .font(.title3)
+                .fontWeight(.bold)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 1)) {
@@ -514,31 +513,36 @@ struct ModernEmptyState: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "chart.pie.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-                .padding()
-                .background(
-                    Circle()
-                        .fill(Color.blue.opacity(0.1))
-                )
-            
-            VStack(spacing: 12) {
-                Text("No Budgets Created")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+        ZStack(alignment: .bottomTrailing, content: {
+            // Background and main content
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+            VStack(spacing: 24) {
+                Image(systemName: "chart.pie.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.blue)
+                    .padding()
+                    .background(
+                        Circle()
+                            .fill(Color.blue.opacity(0.1))
+                    )
                 
-                Text("Start by creating a new budget to manage your expenses effectively")
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 40)
+                VStack(spacing: 12) {
+                    Text("No Budgets Created")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    Text("Start by creating a new budget to manage your expenses effectively")
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 40)
+                }
             }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemGroupedBackground))
+        })
     }
 }
 
