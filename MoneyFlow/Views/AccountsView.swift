@@ -114,26 +114,11 @@ struct BalanceCardView: View {
         animation: .default
     ) private var accounts: FetchedResults<Account>
     
-    // Predefined vibrant colors for better contrast
-    private let chartColors: [Color] = [
-        Color(red: 0.33, green: 0.63, blue: 1.0),   // Blue
-        Color(red: 0.95, green: 0.3, blue: 0.3),    // Red
-        Color(red: 0.3, green: 0.85, blue: 0.5),    // Green
-        Color(red: 0.6, green: 0.4, blue: 1.0),     // Purple
-        Color(red: 1.0, green: 0.7, blue: 0.3),     // Orange
-        Color(red: 0.4, green: 0.8, blue: 0.8),     // Teal
-        Color(red: 0.9, green: 0.5, blue: 0.7),     // Pink
-        Color(red: 0.5, green: 0.8, blue: 0.3),     // Lime
-        Color(red: 0.7, green: 0.4, blue: 0.7),     // Violet
-        Color(red: 0.9, green: 0.6, blue: 0.3)      // Golden
-    ]
-    
     var body: some View {
         VStack(spacing: 15) {
             DonutChartView(
                 totalAmount: totalBalance,
-                accounts: Array(accounts),
-                colors: chartColors
+                accounts: [accounts].flatMap { $0 }
             )
             .frame(height: 300)
             .padding(.vertical)
@@ -146,7 +131,7 @@ struct BalanceCardView: View {
     
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: Constants.cardCornerRadius)
-            .fill(colorScheme == .dark ? Color(.secondarySystemBackground) : .white)
+            .fill(colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground))
             .shadow(
                 color: colorScheme == .dark ? .clear : .black.opacity(0.1),
                 radius: Constants.shadowRadius,
@@ -159,130 +144,84 @@ struct BalanceCardView: View {
 struct DonutChartView: View {
     let totalAmount: Double
     let accounts: [Account]
-    let colors: [Color]
     
+    // Compute account data with angles
     private var accountsData: [AccountData] {
-        accounts.enumerated().map { index, account in
-            let balance = Double(account.balance) ?? 0
-            let percentage = (balance / totalAmount) * 100
-            return AccountData(
-                name: account.name ?? "Unknown",
-                balance: balance,
-                percentage: percentage,
-                color: colors[index % colors.count]
+        var dataArray = [AccountData]()
+        let total = totalAmount
+        var accumulatedPercentage: Double = 0.0
+        
+        for account in accounts {
+            let balance = Double(account.balance)
+            let percentage = (balance / total) * 100
+            // Convert percentage to radians and calculate mid-sector
+            let midAngle = (accumulatedPercentage + (percentage / 2)) * (2 * .pi) / 100
+            dataArray.append(
+                AccountData(
+                    name: account.name ?? "Unknown",
+                    balance: balance,
+                    percentage: percentage,
+                    angle: midAngle // Store calculated mid-sector angle
+                )
             )
+            accumulatedPercentage += percentage
         }
+        return dataArray
     }
     
     var body: some View {
         ZStack {
-            // Donut chart
             Chart(accountsData) { account in
                 SectorMark(
                     angle: .value("Balance", account.balance),
-                    innerRadius: .ratio(0.75),
-                    outerRadius: .ratio(0.95)
+                    innerRadius: .ratio(0.80),
+                    outerRadius: .ratio(1.0),
+                    angularInset: 2.0
                 )
-                .foregroundStyle(account.color)
-                .cornerRadius(8)
+                .cornerRadius(12)
+                .foregroundStyle(by: .value("Name", account.name))
             }
-            .chartBackground { _ in
-                Color.clear
-            }
-            
-            // Percentage labels
-            ForEach(accountsData) { account in
-                PercentageBadge(
-                    percentage: account.percentage,
-                    angle: calculateMidAngle(for: account),
-                    color: account.color
-                )
-            }
-            
-            // Center content
-            VStack(spacing: 4) {
-                Text("Total Balance")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text("$")
-                        .font(.system(size: 20, weight: .medium))
-                    Text(String(format: "%.2f", totalAmount))
-                        .font(.system(size: 32, weight: .semibold))
+            .chartOverlay { chartProxy in
+                GeometryReader { geometry in
+                    if let plotFrame = chartProxy.plotFrame {
+                        let frame = geometry[plotFrame]
+                        // Centered Total Balance Text
+                        VStack(spacing: 4) {
+                            Text("Total Balance")
+                                .font(.system(size: 15))
+                                .foregroundColor(.secondary)
+                            
+                            Text(totalAmount.currencyFormat)
+                                .font(.custom("CourierNewPSMT", size: 28))
+                                .bold()
+                                .foregroundColor(.primary)
+                        }
+                        .position(x: frame.midX, y: frame.midY)
+                        
+                        // Labels placed outside the pie chart
+                        ForEach(accountsData) { account in
+                            // Adjust distance outside the chart
+                            let radius: CGFloat = frame.width * 0.55
+                            let xOffset = sin(account.angle) * radius
+                            let yOffset = -cos(account.angle) * radius
+                            
+                            Text("\(Int(round(account.percentage)))%")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                                .frame(minWidth: 40)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(.thinMaterial)
+                                        .blur(radius: 0.5)
+                                )
+                                .position(x: frame.midX + xOffset, y: frame.midY + yOffset)
+                        }
+                    }
                 }
-                .foregroundColor(.primary)
-            }
-            .padding()
-        }
-    }
-    
-    private func calculateMidAngle(for account: AccountData) -> Angle {
-        let precedingTotal = accountsData
-            .prefix(while: { $0.id != account.id })
-            .reduce(0.0) { $0 + $1.balance }
-        
-        let startPercentage = precedingTotal / totalAmount
-        let midPercentage = startPercentage + (account.balance / totalAmount / 2)
-        return .degrees(midPercentage * 360 - 90)
-    }
-}
-
-// MARK: - Percentage Badge
-struct PercentageBadge: View {
-    let percentage: Double
-    let angle: Angle
-    let color: Color
-    
-    var body: some View {
-        GeometryReader { geometry in
-            if percentage >= 5 {
-                let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                let radius: CGFloat = min(geometry.size.width, geometry.size.height) / 2 + 10
-                
-                // Calculate badge position with adjusted offset
-                let badgeOffset: CGFloat = 20 // Offset for the badge from the donut
-                let basePosition = CGPoint(
-                    x: center.x + CGFloat(cos(angle.radians)) * radius,
-                    y: center.y + CGFloat(sin(angle.radians)) * radius
-                )
-                
-                // Calculate additional offset based on angle quadrant
-                let additionalOffset = calculateAdditionalOffset(angle: angle)
-                let finalPosition = CGPoint(
-                    x: basePosition.x + additionalOffset.x,
-                    y: basePosition.y + additionalOffset.y
-                )
-                
-                Text("\(Int(round(percentage)))%")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(minWidth: 45) // Ensure consistent width for badges
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.white.opacity(0.8))
-                            .shadow(color: color.opacity(0.2), radius: 4, y: 2)
-                            .blur(radius: 0.5)
-                    )
-                    .position(x: finalPosition.x, y: finalPosition.y)
             }
         }
-    }
-    
-    // Calculate additional offset based on angle to better position badges
-    private func calculateAdditionalOffset(angle: Angle) -> CGPoint {
-        let degrees = (angle.degrees + 90).truncatingRemainder(dividingBy: 360)
-        let radians = degrees * .pi / 180
-        
-        // Adjust these values to fine-tune badge positioning
-        let offsetDistance: CGFloat = 15
-        
-        return CGPoint(
-            x: CGFloat(cos(radians)) * offsetDistance,
-            y: CGFloat(sin(radians)) * offsetDistance
-        )
     }
 }
 
@@ -292,7 +231,7 @@ struct AccountData: Identifiable {
     let name: String
     let balance: Double
     let percentage: Double
-    let color: Color
+    let angle: Double // Stores the mid-sector angle in radians
 }
 
 // MARK: - Statistic View
@@ -422,7 +361,7 @@ struct QuickActionButton: View {
     var isDisabled: Bool = false
     let action: () -> Void
     var colorScheme: ColorScheme
-
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 12) {
@@ -439,7 +378,7 @@ struct QuickActionButton: View {
         .opacity(isDisabled ? 0.5 : 1)
         .disabled(isDisabled)
     }
-
+    
     private var buttonBackground: some View {
         RoundedRectangle(cornerRadius: 16)
             .fill(colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground))
@@ -475,11 +414,11 @@ struct AccountTypeFilter: View {
 struct AccountsGridView: View {
     let accounts: FetchedResults<Account>
     let selectedType: String
-
+    
     private var filteredAccounts: [Account] {
         selectedType == "all" ? Array(accounts) : accounts.filter { $0.type == selectedType }
     }
-
+    
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 15) {
@@ -560,17 +499,17 @@ struct ModernAccountCard: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-            VStack(alignment: .leading, spacing: 16) {
-                headerSection
-                Spacer()
-                detailsSection
-            }
-            .padding(16)
-            .frame(height: 170)
-            .background(cardBackground)
-            .overlay(cardBorder)
-            .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.05), radius: 10, y: 5)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+        VStack(alignment: .leading, spacing: 16) {
+            headerSection
+            Spacer()
+            detailsSection
+        }
+        .padding(16)
+        .frame(height: 170)
+        .background(cardBackground)
+        .overlay(cardBorder)
+        .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.05), radius: 10, y: 5)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
     }
     
     private var headerSection: some View {
@@ -685,7 +624,7 @@ struct CFGradientIconView: View {
     let systemName: String
     let colors: [Color]
     var size: CGFloat = 20
-
+    
     var body: some View {
         LinearGradient(
             colors: colors,
@@ -710,44 +649,44 @@ struct PressableButtonStyle: ButtonStyle {
 
 
 /***
-// Custom ViewModifier to handle press events [We are not using this code for now]
-struct PressEventsModifier: ViewModifier {
-    let onPress: () -> Void
-    let onRelease: () -> Void
-
-    // A gesture state to track the press
-    @GestureState private var isPressedGesture = false
-
-    func body(content: Content) -> some View {
-        // Create a gesture that detects immediate touch events.
-        let pressGesture = DragGesture(minimumDistance: 0)
-            .updating($isPressedGesture) { (_, state, _) in
-                // Mark as pressed when the gesture is active.
-                state = true
-            }
-            .onEnded { _ in
-                // Call the release callback when the gesture ends.
-                onRelease()
-            }
-
-        return content
-            // Optionally, adjust view properties based on the gesture state.
-            .scaleEffect(isPressedGesture ? 0.97 : 1)
-            // Attach the gesture.
-            .gesture(pressGesture)
-            // Trigger the onPress callback when the gesture state changes.
-            .onChange(of: isPressedGesture) { newValue in
-                if newValue {
-                    onPress()
-                }
-            }
-    }
-}
-
-// Extend View to include the pressEvents modifier
-extension View {
-    func pressEvents(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) -> some View {
-        self.modifier(PressEventsModifier(onPress: onPress, onRelease: onRelease))
-    }
-}
-*/
+ // Custom ViewModifier to handle press events [We are not using this code for now]
+ struct PressEventsModifier: ViewModifier {
+ let onPress: () -> Void
+ let onRelease: () -> Void
+ 
+ // A gesture state to track the press
+ @GestureState private var isPressedGesture = false
+ 
+ func body(content: Content) -> some View {
+ // Create a gesture that detects immediate touch events.
+ let pressGesture = DragGesture(minimumDistance: 0)
+ .updating($isPressedGesture) { (_, state, _) in
+ // Mark as pressed when the gesture is active.
+ state = true
+ }
+ .onEnded { _ in
+ // Call the release callback when the gesture ends.
+ onRelease()
+ }
+ 
+ return content
+ // Optionally, adjust view properties based on the gesture state.
+ .scaleEffect(isPressedGesture ? 0.97 : 1)
+ // Attach the gesture.
+ .gesture(pressGesture)
+ // Trigger the onPress callback when the gesture state changes.
+ .onChange(of: isPressedGesture) { newValue in
+ if newValue {
+ onPress()
+ }
+ }
+ }
+ }
+ 
+ // Extend View to include the pressEvents modifier
+ extension View {
+ func pressEvents(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) -> some View {
+ self.modifier(PressEventsModifier(onPress: onPress, onRelease: onRelease))
+ }
+ }
+ */
