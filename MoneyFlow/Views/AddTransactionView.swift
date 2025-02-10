@@ -201,6 +201,7 @@ struct AddTransactionView: View {
     // MARK: - Environment
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
     // MARK: - Properties
     @StateObject private var viewModel = AddTransactionViewModel()
@@ -220,11 +221,15 @@ struct AddTransactionView: View {
         self._viewModel = StateObject(wrappedValue: AddTransactionViewModel(transaction: transaction))
     }
     
+    private var bgColor: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
+    }
+    
     // MARK: - Body
     var body: some View {
         ZStack {
             // Background
-            Color(.black)
+            Color(.systemGroupedBackground)
                 .ignoresSafeArea()
             
             ScrollView {
@@ -239,7 +244,8 @@ struct AddTransactionView: View {
                             Button("Cancel") {
                                 dismiss()
                             }
-                            .foregroundColor(.blue)
+                            .foregroundColor(.primary)
+                            .fontWeight(.bold)
                         }
                         
                         // Transaction Type Selector
@@ -267,7 +273,7 @@ struct AddTransactionView: View {
                                 .multilineTextAlignment(.leading)
                         }
                         .padding()
-                        .background(Color(.systemGray6))
+                        .background(bgColor)
                         .cornerRadius(12)
                     }
                     .padding(.horizontal)
@@ -309,7 +315,7 @@ struct AddTransactionView: View {
                             }
                         }
                         .padding()
-                        .background(Color(.systemGray6))
+                        .background(bgColor)
                         .cornerRadius(12)
                         
                         // Account Selection
@@ -338,7 +344,7 @@ struct AddTransactionView: View {
                             }
                         }
                         .padding()
-                        .background(Color(.systemGray6))
+                        .background(bgColor)
                         .cornerRadius(12)
                         
                         // Date Selection
@@ -350,13 +356,13 @@ struct AddTransactionView: View {
                             }
                         }
                         .padding()
-                        .background(Color(.systemGray6))
+                        .background(bgColor)
                         .cornerRadius(12)
                         
                         // Note Input
                         TextField("Add note", text: $viewModel.note)
                             .padding()
-                            .background(Color(.systemGray6))
+                            .background(bgColor)
                             .cornerRadius(12)
                     }
                     .padding(.horizontal)
@@ -365,7 +371,7 @@ struct AddTransactionView: View {
                     VStack(spacing: 20) {
                         Toggle("Recurring Transaction", isOn: $viewModel.isRecurring)
                             .padding()
-                            .background(Color(.systemGray6))
+                            .background(bgColor)
                             .cornerRadius(12)
                         
                         if viewModel.isRecurring {
@@ -384,7 +390,7 @@ struct AddTransactionView: View {
                                 // Start Date
                                 DatePicker("Start Date", selection: $viewModel.startDate, displayedComponents: .date)
                                     .padding()
-                                    .background(Color(.systemGray6))
+                                    .background(bgColor)
                                     .cornerRadius(12)
                                 
                                 // End Date Toggle and Picker
@@ -398,7 +404,7 @@ struct AddTransactionView: View {
                                     }
                                 }
                                 .padding()
-                                .background(Color(.systemGray6))
+                                .background(bgColor)
                                 .cornerRadius(12)
                             }
                         }
@@ -463,7 +469,7 @@ struct AddTransactionView: View {
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(viewModel.type == type ? Color.blue.opacity(0.1) : Color(.systemGray6))
+            .background(bgColor)
             .foregroundColor(viewModel.type == type ? .blue : .primary)
             .cornerRadius(12)
             .overlay(

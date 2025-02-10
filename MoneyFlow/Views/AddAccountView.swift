@@ -13,8 +13,8 @@ struct AddAccountView: View {
     
     let accountTypes = ["checking", "savings", "credit", "cash", "investment"]
     
-    private var secondaryBackgroundColor: Color {
-        colorScheme == .dark ? Color(.systemGray6) : Color(.systemGray6).opacity(0.5)
+    private var bgColor: Color {
+        colorScheme == .dark ? Color(.secondarySystemBackground) : Color(.systemBackground)
     }
     
     private let accountTypeIcons: [String: String] = [
@@ -27,7 +27,7 @@ struct AddAccountView: View {
     
     var body: some View {
         ZStack {
-            Color(.black)
+            Color(.systemGroupedBackground)
                 .ignoresSafeArea()
             
             VStack(spacing: 24) {
@@ -40,7 +40,8 @@ struct AddAccountView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
+                    .fontWeight(.bold)
                 }
                 .padding()
                 
@@ -54,7 +55,7 @@ struct AddAccountView: View {
                             
                             TextField("Enter account name", text: $name)
                                 .padding()
-                                .background(secondaryBackgroundColor)
+                                .background(bgColor)
                                 .cornerRadius(12)
                         }
                         .padding(.horizontal)
@@ -77,7 +78,7 @@ struct AddAccountView: View {
                                                     .fontWeight(.medium)
                                             }
                                             .padding()
-                                            .background(type == accountType ? Color.blue.opacity(0.2) : secondaryBackgroundColor)
+                                            .background(type == accountType ? Color.blue.opacity(0.2) : bgColor)
                                             .foregroundColor(type == accountType ? .blue : .primary)
                                             .cornerRadius(12)
                                             .overlay(
@@ -106,7 +107,7 @@ struct AddAccountView: View {
                                     .keyboardType(.decimalPad)
                             }
                             .padding()
-                            .background(secondaryBackgroundColor)
+                            .background(bgColor)
                             .cornerRadius(12)
                         }
                         .padding(.horizontal)
@@ -114,7 +115,7 @@ struct AddAccountView: View {
                         // Default Account Toggle
                         Toggle("Set as Default Account", isOn: $isDefault)
                             .padding()
-                            .background(secondaryBackgroundColor)
+                            .background(bgColor)
                             .cornerRadius(12)
                             .padding(.horizontal)
                     }
