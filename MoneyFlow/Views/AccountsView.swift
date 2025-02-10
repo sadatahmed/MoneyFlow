@@ -192,8 +192,7 @@ struct DonutChartView: View {
                                 .foregroundColor(.secondary)
                             
                             Text(totalAmount.currencyFormat)
-                                .font(.custom("CourierNewPSMT", size: 28))
-                                .bold()
+                                .font(.system(size: 24, weight: .bold, design: .monospaced))
                                 .foregroundColor(.primary)
                         }
                         .position(x: frame.midX, y: frame.midY)
@@ -201,18 +200,18 @@ struct DonutChartView: View {
                         // Labels placed outside the pie chart
                         ForEach(accountsData) { account in
                             // Adjust distance outside the chart
-                            let radius: CGFloat = frame.width * 0.55
+                            let radius: CGFloat = frame.width * 0.45
                             let xOffset = sin(account.angle) * radius
                             let yOffset = -cos(account.angle) * radius
                             
                             Text("\(Int(round(account.percentage)))%")
-                                .font(.headline)
+                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
                                 .foregroundColor(.primary)
-                                .frame(minWidth: 40)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 4)
+                                .frame(minWidth: 30)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 8)
+                                    RoundedRectangle(cornerRadius: 6)
                                         .fill(.thinMaterial)
                                         .blur(radius: 0.5)
                                 )
